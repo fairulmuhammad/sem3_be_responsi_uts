@@ -1,0 +1,605 @@
+CREATE TABLE testbe (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nim VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    signupPassword VARCHAR(100) NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    level ENUM('Admin', 'Dosen', 'Mahasiswa') NOT NULL,
+    nilai FLOAT DEFAULT NULL
+);
+///
+// Create a model named User _model.php in application/models/.
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class User_model extends CI_Model {
+
+    public function __construct() {
+        parent::__construct();
+    }
+
+    public function get_all_users() {
+        return $this->db->get('testbe')->result();
+    }
+
+    public function get_user_by_nim($nim) {
+        return $this->db->get_where('testbe', ['nim' => $nim])->row();
+    }
+
+    public function insert_user($data) {
+        return $this->db->insert('testbe', $data);
+    }
+
+    public function update_user($nim, $data) {
+        return $this->db->update('testbe', $data, ['nim' => $nim]);
+    }
+
+    public function delete_user($nim) {
+        return $this->db->delete('testbe', ['nim' => $nim]);
+    }
+}
+?>
+///
+////Create a controller named User .php in application/controllers/.
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class User extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('User _model');
+        $this->load->library('session');
+    }
+
+    public function index() {
+        $data['users'] = $this->User _model->get_all_users();
+        $this->load->view('dashboard', $data);
+    }
+
+    public function add() {
+        $this->load->view('add_user');
+    }
+
+    public function store() {
+        $data = [
+            'nim' => $this->input->post('nim'),
+            'email' => $this->input->post('email'),
+            'signupPassword' => $this->input->post('signupPassword'),
+            'password' => md5($this->input->post('password')),
+            'level' => $this->input->post('level')
+        ];
+        $this->User _model->insert_user($data);
+        redirect('user');
+    }
+
+    public function edit($nim) {
+        $data['user'] = $this->User _model->get_user_by_nim($nim);
+        $this->load->view('edit_user', $data);
+    }
+
+    public function update() {
+        $nim = $this->input->post('nim');
+        $data = [
+            'nilai' => $this->input->post('nilai')
+        ];
+        $this->User _model->update_user($nim, $data);
+        redirect('user');
+    }
+
+    public function delete($nim) {
+        $this->User _model->delete_user($nim);
+        redirect('user');
+    }
+}
+?>
+///
+Dashboard View (dashboard.php)
+Create a view file in application/views/.
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="<?php echo base_url('assets/css/style.css'); ?>">
+</head>
+<body>
+    <h1>Dashboard</h1>
+    <a href="<?php echo site_url('user/add'); ?>">Add User</a>
+    <table>
+        <tr>
+            <th>No</th>
+            <th>NIM</th>
+            <th>Email</th>
+            <th>Action</th>
+        </tr>
+        <?php $no = 1; foreach ($users as $user): ?>
+        <tr>
+            <td><?php echo $no++; ?></td>
+            <td><?php echo
+                <td><?php echo $user->nim; ?></td>
+                <td><?php echo $user->email; ?></td>
+                <td>
+                    <a href="<?php echo site_url('user/edit/' . $user->nim); ?>">Edit</a>
+                    <a href="<?php echo site_url('user/delete/' . $user->nim); ?>" onclick="return confirm('Are you sure you want to delete this user?');">Delete</a>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+    </body>
+    </html>
+///
+Add User View (add_user.php)
+Create a view file named add_user.php in application/views/.
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add User</title>
+</head>
+<body>
+    <h1>Add User</h1>
+    <form action="<?php echo site_url('user/store'); ?>" method="POST">
+        <input type="text" name="nim" placeholder="NIM" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="signupPassword" placeholder="Create a password" required>
+        <input type="password" name="password" placeholder="Confirm your password" required>
+        <select name="level" required>
+            <option value="" disabled selected>Select Role</option>
+            <option value="Admin">Admin</option>
+            <option value="Dosen">Dosen</option>
+            <option value="Mahasiswa">Mahasiswa</option>
+        </select>
+        <button type="submit">Add User</button>
+    </form>
+    <a href="<?php echo site_url('user'); ?>">Back to Dashboard</a>
+</body>
+</html>
+///
+Edit User View (edit_user.php)
+Create a view file named edit_user.php in application/views/.
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit User</title>
+</head>
+<body>
+    <h1>Edit User</h1>
+    <form action="<?php echo site_url('user/update'); ?>" method="POST">
+        <input type="hidden" name="nim" value="<?php echo $user->nim; ?>">
+        <label for="nilai">Nilai:</label>
+        <input type="number" id="nilai" name="nilai" value="<?php echo $user->nilai; ?>" required>
+        <button type="submit">Update</button>
+    </form>
+    <a href="<?php echo site_url('user'); ?>">Back to Dashboard</a>
+</body>
+</html>
+///
+Configure Routes
+Open the application/config/routes.php file and set up the routes for your application.
+///
+$route['default_controller'] = 'user';
+$route['user'] = 'user/index';
+$route['user/add'] = 'user/add';
+$route['user/store'] = 'user/store';
+$route['user/edit/(:any)'] = 'user/edit/$1';
+$route['user/update'] = 'user/update';
+$route['user/delete/(:any)'] = 'user/delete/$1';
+///
+You can create a CSS file for styling your views. Create a folder named assets/css and add a file named style.css.
+///
+body {
+    font-family: Arial, sans-serif;
+    background-color: #FBD0FC;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+}
+
+a {
+    text-decoration: none;
+    color: blue;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+///
+Create a Login Controller:
+
+Create a new controller named Auth.php in application/controllers/.
+///
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Auth extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('User _model');
+        $this->load->library('session');
+    }
+
+    public function login() {
+        $this->load->view('login');
+    }
+
+    public function process_login() {
+        $nim = $this->input->post('nim');
+        $password = md5($this->input->post('password'));
+
+        $user = $this->User _model->get_user_by_nim($nim);
+
+        if ($user && $user->password === $password) {
+            $this->session->set_userdata('akses', true);
+            $this->session->set_userdata('level', $user->level);
+            redirect('user');
+        } else {
+            $this->session->set_flashdata('error', 'Invalid NIM or Password');
+            redirect('auth/login');
+        }
+    }
+
+    public function logout() {
+        $this->session->sess_destroy();
+        redirect('auth/login');
+    }
+}
+///
+Create a Login View:
+
+Create a view file named login.php in application/views/.
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <?php if ($this->session->flashdata('error')): ?>
+        <p style="color: red;"><?php echo $this->session->flashdata('error'); ?></p>
+    <?php endif; ?>
+    <form action="<?php echo site_url('auth/process_login'); ?>" method="POST">
+        <input type="text" name="nim" placeholder="NIM" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>
+///
+Update Routes:
+
+Open application/config/routes.php and add routes for the authentication controller
+///
+$route['auth/login'] = 'auth/login';
+$route['auth/process_login'] = 'auth/process_login';
+$route['auth/logout'] = 'auth/logout';
+///
+Protect User Controller:
+
+Modify the User  controller to check for user authentication.
+///
+public function __construct() {
+    parent::__construct();
+    $this->load->model('User _model');
+    $this->load->library('session');
+
+    // Check if user is logged in
+    if (!$this->session->userdata('akses')) {
+        redirect('auth/login');
+    }
+}
+///
+User Profile Management
+Functionality: Allow users to view and edit their profiles.
+
+Steps to Implement:
+Add Profile Methods in User Controller:
+
+Add methods to view and edit user profiles in User .php.
+///
+public function profile() {
+    $nim = $this->session->userdata('nim');
+    $data['user'] = $this->User _model->get_user_by_nim($nim);
+    $this->load->view('profile', $data);
+}
+
+public function update_profile() {
+    $nim = $this->input->post('nim');
+    $data = [
+        'email' => $this->input->post('email'),
+        'signupPassword' => $this->input->post('signupPassword'),
+        'password' => md5($this->input->post('password'))
+    ];
+    $this->User _model->update_user($nim, $data);
+    redirect('user/profile');
+}
+///
+Create Profile View:
+
+Create a view file named profile.php in application/views/.
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+</head>
+<body>
+    <h1>User
+
+
+///
+1. User Model (User _model.php)
+Make sure your model is set up to handle user data.
+///
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class User_model extends CI_Model {
+
+    public function __construct() {
+        parent::__construct();
+    }
+
+    public function get_all_users() {
+        return $this->db->get('testbe')->result();
+    }
+
+    public function get_user_by_nim($nim) {
+        return $this->db->get_where('testbe', ['nim' => $nim])->row();
+    }
+
+    public function insert_user($data) {
+        return $this->db->insert('testbe', $data);
+    }
+
+    public function update_user($nim, $data) {
+        return $this->db->update('testbe', $data, ['nim' => $nim]);
+    }
+
+    public function delete_user($nim) {
+        return $this->db->delete('testbe', ['nim' => $nim]);
+    }
+}
+?>
+///
+User Controller (User .php)
+This controller handles user-related actions.
+///
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class User extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('User _model');
+        $this->load->library('session');
+
+        // Check if user is logged in
+        if (!$this->session->userdata('akses')) {
+            redirect('auth/login');
+        }
+    }
+
+    public function index() {
+        $data['users'] = $this->User _model->get_all_users();
+        $this->load->view('dashboard', $data);
+    }
+
+    public function add() {
+        $this->load->view('add_user');
+    }
+
+    public function store() {
+        $data = [
+            'nim' => $this->input->post('nim'),
+            'email' => $this->input->post('email'),
+            'signupPassword' => $this->input->post('signupPassword'),
+            'password' => md5($this->input->post('password')),
+            'level' => $this->input->post('level')
+        ];
+        $this->User _model->insert_user($data);
+        redirect('user');
+    }
+
+    public function edit($nim) {
+        $data['user'] = $this->User _model->get_user_by_nim($nim);
+        $this->load->view('edit_user', $data);
+    }
+
+    public function update() {
+        $nim = $this->input->post('nim');
+        $data = [
+            'nilai' => $this->input->post('nilai')
+        ];
+        $this->User _model->update_user($nim, $data);
+        redirect('user');
+    }
+
+    public function delete($nim) {
+        $this->User _model->delete_user($nim);
+        redirect('user');
+    }
+
+    public function profile() {
+        $nim = $this->session->userdata('nim');
+        $data['user'] = $this->User _model->get_user_by_nim($nim);
+        $this->load->view('profile', $data);
+    }
+
+    public function update_profile() {
+        $nim = $this->input->post('nim');
+        $data = [
+            'email' => $this->input->post('email'),
+            'signupPassword' => $this->input->post('signupPassword'),
+            'password' => md5($this->input->post('password'))
+        ];
+        $this->User _model->update_user($nim, $data);
+        redirect('user/profile');
+    }
+}
+?>
+
+///
+Authentication Controller (Auth.php)
+This controller handles user login and logout.
+///
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Auth extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('User _model');
+        $this->load->library('session');
+    }
+
+    public function login() {
+        $this->load->view('login');
+    }
+
+    public function process_login() {
+        $nim = $this->input->post('nim');
+        $password = md5($this->input->post('password'));
+
+        $user = $this->User _model->get_user_by_nim($nim);
+
+        if ($user && $user->password === $password) {
+            $this->session->set_userdata('akses', true);
+            $this->session->set_userdata('level', $user->level);
+            $this->session->set_userdata('nim', $user->nim);
+            redirect ```php
+('user');
+        } else {
+            $this->session->set_flashdata('error', 'Invalid NIM or Password');
+            redirect('auth/login');
+        }
+    }
+
+    public function logout() {
+        $this->session->sess_destroy();
+        redirect('auth/login');
+    }
+}
+?>
+///
+Views
+Login View (login.php)
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <?php if ($this->session->flashdata('error')): ?>
+        <p style="color: red;"><?php echo $this->session->flashdata('error'); ?></p>
+    <?php endif; ?>
+    <form action="<?php echo site_url('auth/process_login'); ?>" method="POST">
+        <input type="text" name="nim" placeholder="NIM" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>
+///
+Profile View (profile.php)
+
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+</head>
+<body>
+    <h1>User Profile</h1>
+    <form action="<?php echo site_url('user/update_profile'); ?>" method="POST">
+        <input type="hidden" name="nim" value="<?php echo htmlspecialchars($user->nim, ENT_QUOTES, 'UTF-8'); ?>" />
+        <label>Email:</label>
+        <input type="email" name="email" value="<?php echo htmlspecialchars($user->email, ENT_QUOTES, 'UTF-8'); ?>" required />
+        <label>Signup Password:</label>
+        <input type="password" name="signupPassword" value="<?php echo htmlspecialchars($user->signupPassword, ENT_QUOTES, 'UTF-8'); ?>" required />
+        <label>Password:</label>
+        <input type="password" name="password" required />
+        <button type="submit">Update Profile</button>
+    </form>
+    <a href="<?php echo site_url('user'); ?>">Back to Dashboard</a>
+</body>
+</html>
+///
+Dashboard View (dashboard.php)
+
+///
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Dashboard</h1>
+    <a href="<?php echo site_url('user/add'); ?>">Add User</a>
+    <table>
+        <tr>
+            <th>NIM</th>
+            <th>Email</th>
+            <th>Action</th>
+        </tr>
+        <?php foreach ($users as $user): ?>
+            <tr>
+                <td><?php echo htmlspecialchars($user->nim, ENT_QUOTES, 'UTF-8'); ?></td>
+                <td><?php echo htmlspecialchars($user->email, ENT_QUOTES, 'UTF-8'); ?></td>
+                <td>
+                    <a href="<?php echo site_url('user/edit/' . $user->nim); ?>">Edit</a>
+                    <a href="<?php echo site_url('user/delete/' . $user->nim); ?>" onclick="return confirm('Are you sure?');">Delete</a>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+</body>
+</html>
+///
+Routes Configuration (routes.php)
+Make sure to set up your routes in application/config/routes.php.
+
+///
+$route['auth/login'] = 'auth/login';
+$route['auth/process_login'] = 'auth/process_login';
+$route['auth/logout'] = 'auth/logout';
+$route['user'] = 'user/index';
+$route['user/add'] = 'user/add';
+$route['user/store'] = 'user/store';
+$route['user/edit/(:any)'] = 'user/edit/$1';
+$route['user/update'] = 'user/update';
+$route['user/delete/(:any)'] = 'user/delete/$1';
+$route['user/profile'] = 'user/profile';
+$route['user/update_profile'] = 'user/update_profile';
